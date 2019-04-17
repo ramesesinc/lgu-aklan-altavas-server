@@ -1,0 +1,87 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+import java.rmi.server.*;
+import com.rameses.common.*;
+import treasury.facts.*;
+import treasury.actions.*;
+
+class PaymentOrderService {
+	
+	@DataContext("paymentorder") 
+	def pmt; 
+	
+	@DataContext("paymentorder_type") 
+	def pmoType; 
+
+	@DataContext("revenueitem") 
+	def revItem; 
+
+	@Service("DateService") 
+	def dtSvc; 
+
+	@Service('PersistenceService') 
+	def persistenceSvc; 
+
+	@Env 
+	def env; 
+
+	@ProxyMethod 
+	public def open( params ) { 
+		params._schemaname = 'paymentorder'; 
+		params.findBy = [ txnid: params.txnid ]; 
+		return persistenceSvc.read( params );  
+	} 
+ 
+
+	@ProxyMethod
+	public def create(def entity){	
+		if(! entity.payer ) throw new Exception("payer is required. ")
+		if(! entity.amount ) throw new Exception("amount is required. ") 
+		if(! entity.paidby) throw new Exception("paidby is required. ") 
+		if(! entity.paidbyaddress) throw new Exception("paidbyaddress is required. ");
+		if(! entity.txntype) throw new Exception("txntype is required. ") 
+
+		entity.txntype = pmoType.find([objid: entity.txntype ]).first();
+
+		if(!entity.txntype)
+			throw new Exception("Payment Order txntype " + entity.txntype?.objid + " not found!");
+
+		if(entity.items) {
+			entity.items.eachWithIndex{ o,idx-> 
+				if( !o.item?.objid ) throw new Exception("Items item must have an objid");
+				if( !o.amount ) throw new Exception("Items item must have an amount");
+				def item = revItem.find([objid: o.item.objid]).first(); 
+				if ( !item ) throw new Exception('Item #'+ (idx+1)  +' account '+ o.item.title +' does not exist'); 
+				o.item = item; 
+			}
+			if( entity.items.sum{it.amount} != entity.amount)
+				throw new Exception("Amount must be equal sum of amount of items");
+		}	
+
+		def m = [:];
+		m.expirydate = dtSvc.findNextDate('1y');
+		if (entity.expirydate){
+			m.expirydate = entity.expirydate
+		}
+		m.txnid = entity.txnid;
+		m.controlno = entity.controlno;
+		m.info = entity.info;
+		m.payer = entity.payer;
+		m.paidby = entity.paidby;
+		m.paidbyaddress = entity.paidbyaddress;
+		m.amount = entity.amount;
+		m.refid = entity.refid;
+		m.refno = entity.refno;
+		m.txntype = entity.txntype;
+		m.particulars = entity.particulars;
+
+		if(!entity.txndate) m.txndate = dtSvc.getServerDate();
+		pmt.create(m);
+		return m; 
+	} 
+
+	@ProxyMethod 
+	public def findPaymentType( params ) {
+		return pmoType.find([ objid: params.objid ]).first();
+	}
+}
