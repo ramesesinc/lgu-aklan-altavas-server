@@ -1,0 +1,5 @@
+dialect=mysql
+driverClass=com.mysql.jdbc.Driver
+url=jdbc:mysql://192.168.83.5/notification_altavas
+user=altavas_dbuser
+pwd=@lt@v@5
