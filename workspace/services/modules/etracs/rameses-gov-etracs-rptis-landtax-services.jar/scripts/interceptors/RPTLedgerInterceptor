@@ -1,0 +1,180 @@
+import com.rameses.annotations.*
+import com.rameses.common.*;
+import com.rameses.services.extended.*;
+
+class RPTLedgerInterceptor
+{
+    @Env 
+    def env 
+
+    @ActiveDB('rptledger')
+    def em
+
+	@Service('RPTLedgerService')
+    def svc
+
+    @Service('Var')
+	def var
+
+    @Service('RealPropertyService')
+    def rpSvc
+
+	@Service('RPTUtil')
+	def util 
+
+    @Service('LogService')
+    def logSvc
+
+    @Service('FAASService')
+    def faasSvc
+
+    @DataContext('rptledger')
+    def em_ledger
+
+    @DataContext('rptledger_faas')
+    def em_ledger_faas 
+
+    @DataContext('rptledger_item')
+    def em_ledger_item
+
+    @DataContext('rptledger_item_qtrly')
+    def em_ledger_item_qtrly
+
+    @DataContext('faas')
+    def em_faas
+
+    @DataContext('rptbill_ledger')
+    def em_bill_ledger
+
+    def STATE_PENDING   = 'PENDING'
+	def STATE_APPROVED  = 'APPROVED'
+
+
+    @After(pattern="RPTLedgerService.(createLedger|createSubLedger|updateLedger|updateSubLedger|approveLedger|fixLedger|updateState|updateFaasReference)") 
+    public void logActions( evt ) {
+        def ledger = evt.result 
+        logSvc.logA( evt.methodName, 'RPTLEDGER', ledger.objid, ledger._remarks)
+    }
+
+	@After(pattern="FAASService.(approveFaas|approveFaasByRemote)", eval="#{!env.ORGCLASS?.equalsIgnoreCase('province')}")
+	public void postFaasToRPTLedger(evt){
+        def faas = evt.result 
+
+        if (util.isTrue(faas.datacapture) && (faas.previousfaases.size() == 0 || faas.previousfaases.findAll{it.prevfaasid != null}.size() == 0 )) {
+            postNewLedger(faas)
+        }
+        else if ((faas.txntype.objid.matches('SD|CS') || isFAASFromSubdivision(faas)) && faas.rpu.rputype == 'land'){
+            svc.postNewLedger(faas)
+        }
+        else if ((faas.txntype.objid.matches('SD|CS') || isFAASFromSubdivision(faas)) && faas.rpu.rputype != 'land'){
+            svc.postLedgerFaasData(faas);
+        }
+		else if ( faas.txntype.newledger ) {
+            postNewLedger(faas)
+        }
+        else {
+        	svc.postLedgerFaasData(faas);
+        }		
+	}
+
+    @After(pattern="FAASService.(approveFaas|approveFaasByRemote)", eval="#{env && env.ORGCLASS?.equalsIgnoreCase('province')}")
+    public void postToProvinceLedger(evt){
+        def faas = evt.result 
+
+        if (isLedgerExisting(faas)){
+            svc.postLedgerFaasData(faas)
+        }
+    }
+
+    def isLedgerExisting(faas){
+        def ledger = em_ledger.select('objid').find([faasid:faas.objid]).first() 
+        if (!ledger)
+            ledger = em_ledger.select('objid').find([tdno:faas.prevtdno]).first() 
+        return ledger != null 
+    }
+    
+
+    boolean isFAASFromSubdivision(faas){
+        return em.findFaasFromSubdividedLand(faas) != null 
+    }
+
+    def findManualLedger(faas){
+        def manualledger = svc.findLedgerbyTdNo(faas)
+            
+        if (!manualledger){
+            manualledger = svc.findLedgerbyPrevTdNo(faas)
+        }
+        return manualledger
+    }
+
+    void postNewLedger(faas){
+        def posttoledger = util.toBoolean(var.post_approved_faas_to_ledger,true)
+        if (posttoledger){
+            faas.txntype = faasSvc.getTxnType( faas.txntype.objid )
+            def manualledger = findManualLedger(faas)
+
+            if (util.isTrue(faas.txntype.reconcileledger) && manualledger){
+                manualledger.previousfaases = [[prevfaasid:faas.objid]]
+                svc.reconcileManualLedger(faas, manualledger)
+            }
+            else {
+                svc.postNewLedger(faas)
+            }
+        }
+    }
+
+
+    @After(pattern="FAASChangeInfoService.updateInfo", eval="#{result.action=='change_faas_appraisal'}", index=1000)
+    public void updateFaasHistory(evt){
+        println 'RPTLedgerInterceptor: updateFaasHistory...'
+        def changeinfo = evt.result
+        
+        //cancel original entry and cutoff toyear and to qtr 
+        def orig = em_ledger_faas.where('faasid = :faasid and state = :state', [faasid:changeinfo.faasid, state:'APPROVED']).first()
+        if (!orig) return 
+
+        orig.state = 'CANCELLED'
+        orig.toyear = em_faas.select('effectivityyear').find([objid:changeinfo.faasid]).first().effectivityyear
+        orig.toqtr = 4
+        em_ledger_faas.update(orig)
+
+        //insert new entry with modified appraisal
+        def rlf = createLedgerFaas(changeinfo, orig)
+        em_ledger_faas.create(rlf)
+
+        //reset ledger billing 
+        em_ledger.update([objid:orig.rptledgerid, nextbilldate:null])
+        em_bill_ledger.find([rptledgerid:orig.rptledgerid]).delete()
+        em_ledger_item_qtrly.find([rptledgerid:orig.rptledgerid]).delete()
+        em_ledger_item.find([rptledgerid:orig.rptledgerid]).delete()
+    }   
+
+
+    def createLedgerFaas(changeinfo, ledgerfaas){
+        def newrpu = changeinfo.newinfo
+        def faas = em_faas.find([objid:changeinfo.faasid]).first()
+
+        def rlf = [:]
+        rlf.objid = 'RLF' + new java.rmi.server.UID()
+        rlf.state = 'APPROVED'
+        rlf.rptledgerid = ledgerfaas.rptledgerid
+        rlf.faasid = faas.objid 
+        rlf.tdno = faas.tdno 
+        rlf.txntype = faas.txntype
+        rlf.classification = newrpu.classification
+        rlf.actualuse = newrpu.classification
+        rlf.taxable = newrpu.taxable 
+        rlf.idleland = (newrpu.idleland == null ? 0 : newrpu.idleland)
+        rlf.reclassed = false 
+        rlf.backtax = false 
+        rlf.fromyear = ledgerfaas.fromyear 
+        rlf.fromqtr = ledgerfaas.fromqtr 
+        rlf.toyear = 0
+        rlf.toqtr = 0 
+        rlf.assessedvalue = newrpu.totalav 
+        rlf.systemcreated = true 
+        return rlf 
+    }
+
+}
+

@@ -1,0 +1,73 @@
+import com.rameses.annotations.*;
+import com.rameses.common.*
+import com.rameses.services.extended.*
+import com.rameses.util.*
+
+
+class AFInventoryReportService  
+{ 
+	@ActiveDB('afinventory_report')
+	def adb 
+ 
+	@Service('DateService')
+	def dtSvc;
+
+	@Env
+	def env;
+
+	@ProxyMethod
+	public def generateReport( params ) {
+		def p = [ year:params.year, month:params.month.index ]; 
+		def ymd = new java.text.SimpleDateFormat('yyyy-MM-dd'); 
+		p.startdate = ymd.parse( p.year.toString() +"-"+ p.month.toString().padLeft(2, '0') +"-01" ); 
+		p.enddate = dtSvc.add( p.startdate, '1M' ); 
+
+		p.startdate = ymd.format( p.startdate ); 
+		p.enddate = ymd.format( p.enddate ); 
+
+		def items = adb.getReport( p ); 
+		if ( !items ) throw new Exception("No matching record(s) found. ")
+
+		items.each {
+			it.costperstub = (it.costperstub > 0 ? it.costperstub : null);
+			it.qtybegin = (it.qtybegin > 0 ? it.qtybegin.toInteger() : null);
+			it.qtyreceived = (it.qtyreceived > 0 ? it.qtyreceived.toInteger() : null);
+			it.qtyissued = (it.qtyissued > 0 ? it.qtyissued.toInteger() : null);
+			it.qtyending = (it.qtyending > 0 ? it.qtyending.toInteger() : null);
+			it.qtybegincost = (it.qtybegincost ? it.qtybegincost.toInteger() : null);
+			it.qtyissuedcost = (it.qtyissuedcost ? it.qtyissuedcost.toInteger() : null);
+			it.qtyendingcost = (it.qtyendingcost ? it.qtyendingcost.toInteger() : null);
+
+			if ( it.formtype == 'serial' ) { 
+				if ( it.qtybegin>0 ) it.beginseries = ''+ formatSeries(it.beginstartseries, it.beginendseries, it.serieslength); 
+				if ( it.qtyreceived>0 ) it.receivedseries = ''+ formatSeries(it.receivedstartseries, it.receivedendseries, it.serieslength); 
+				if ( it.qtyissued>0 ) it.issuedseries = ''+ formatSeries(it.issuedstartseries, it.issuedendseries, it.serieslength); 
+				if ( it.qtyending>0 ) it.endingseries = ''+ formatSeries(it.endingstartseries, it.endingendseries, it.serieslength); 
+			} 
+
+		}
+
+		def data =[ items: items ]; 
+		data.info = [PERIOD : 'FOR THE MONTH OF ' + params.month.caption + ', ' + params.year]; 
+		data.info.PREPAREDBY = env.FULLNAME; 
+		data.info.PREPAREDBYTITLE = env.JOBTITLE;
+		return data; 
+	}
+
+	private String formatSeries( def startseries, def endseries, int length ) {
+		def sb = new StringBuilder(); 
+		if ( length > 0 ) {
+			sb.append( startseries.toString().padLeft( length,'0')); 
+		} else {
+			sb.append( startseries.toString()); 
+		}
+		sb.append(' - '); 
+
+		if ( length > 0 ) {
+			sb.append( endseries.toString().padLeft( length,'0')); 
+		} else {
+			sb.append( endseries.toString()); 
+		}
+		return sb.toString(); 
+	}
+}
