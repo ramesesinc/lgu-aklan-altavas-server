@@ -1,0 +1,12 @@
+.osiris_pid
+.shutdown_pid
+.terminal
+._.DS_Store
+.DS_Store
+/client/
+*.bak*
+*.back
+_tmp
+_baks
+build-impl.xml~
+Thumbs.db
