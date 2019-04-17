@@ -1,0 +1,33 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+import java.rmi.server.*;
+import com.rameses.services.extended.*;
+
+public class AklanRPTLedgerInterceptor 
+{
+    @After(pattern="RPTLedgerService.calcLedgerItemAssessedValue.*")
+    public void postFaasToRPTLedger(evt){
+        /* params: ledger, ledgerfaas, yr, av*/
+        def params = evt.result
+		if (params.yr < 2018) return
+
+		def prevyr = 2006
+        def prevledgerfaas = params.ledger.faases.find{ it.state == 'APPROVED' &&  prevyr >= it.fromyear && (prevyr <= it.toyear || it.toyear == 0)}
+		
+		
+        if (prevledgerfaas && prevledgerfaas.classification.name.toUpperCase().matches('RESIDENTIAL|AGRICULTURAL')){
+			def rate = 1.10
+			if (prevledgerfaas.classification.name== 'RESIDENTIAL') {
+				rate = 1.50
+			}
+			
+			def refav = prevledgerfaas.assessedvalue * rate
+			
+			if (params.av > refav){
+                params.av = refav 
+            }
+			println '========================================================================'
+            println 'reclassed: [' + params.ledgerfaas.tdno + ']  Recomputed AV: ' + params.av 
+        }
+    }
+}
