@@ -1,0 +1,95 @@
+<app>
+<env>
+app.title=ETRACS v2.5.04.032-03018 (Municipality of Altavas)
+app.host=192.168.83.5:8070
+app.cluster=osiris3
+app.context=etracs25
+app.help=http://192.168.83.5:8080/help
+app.loader=com.rameses.osiris2.client.OsirisAppLoader
+readTimeout=180000
+connectionTimeout=5000
+
+ws.host=192.168.83.5:8060
+</env>
+<modules>
+
+	<!-- custom libraries -->
+	<module file="custom/gov-lgu-altavas-landtax-nod-report.jar" version="1.3"/>
+	<module file="custom/gov-lgu-treasury-report.jar" version="1.3" />
+	<module file="custom/gov-lgu-aklan-rptis-report-td.jar" version="1.0" />
+	<module file="custom/gov-lgu-altavas-treasury-form57.jar" version="1.0" />
+	<module file="custom/gov-lgu-altavas-rpt-faas-lbm-reports.jar" version="1.2" />
+	<module file="custom/gov-lgu-altavas-rpt-noa.jar" version="1.0"/>
+	<module file="custom/gov-lgu-altavas-treasury-cashreceipts-form53.jar" version="1.6"/>
+	<module file="custom/gov-lgu-altavas-treasury-receipts.jar" version="1.4"/>
+	<module file="custom/gov-lgu-altavas-rptis-report.jar" version="1.3" />
+	<module file="custom/gov-lgu-altavas-deposits-reports.jar" version="1.2" />
+	<module file="custom/gov-lgu-altavas-bpls.jar" version="1.06"/>
+	<module file="custom/gov-lgu-altavas-rpt-td-report.jar" version="2.1" />
+	<module file="custom/gov-lgu-altavas-rpt-faas-report.jar" version="1.4" />
+	<module file="custom/gov-lgu-altavas.jar" version="2.0"/>
+	<module file="custom/gov-lgu-altavas-treasury-receipts2.jar" version="2.1"/>
+	<!-- <module file="custom/gov-lgu-altavas-rpt-rptdelinquency-summary.jar" version="1.1"/>-->
+	<module file="custom/gov-lgu-altavas-bpls-permit.jar" version="1.0"/>
+	<module file="custom/gov-lgu-altavas-treasury-abstractofcollection-report.jar" version="1.2"/>
+	<module file="custom/gov-lgu-altavas-sre-remittance-collection-summary.jar" version="1.1"/>
+	<module file="custom/gov-lgu-altavas-rpt-delinquency-summary.jar" version="1.0"/>
+	<module file="custom/gov-lgu-altavas-bpls-assesment-record.jar" version="1.1"/>
+	<module file="custom/gov-lgu-altavas-ctc-individual-receipt.jar" version="1.0"/>
+	<module file="custom/gov-lgu-altavas-paid-business-list.jar" version="1.0"/>
+	<module file="custom/gov-lgu-altavas-rpt-delinquency-summary-byclass.jar" version="1.0"/>
+	
+	
+	<!-- 3rd party libraries -->
+	<module file="lib/commons-net-3.5.jar" version="2.00"/>
+
+	<!-- core libraries -->
+	<module file="core/osiris2-client-themes.jar" version="2.05"/>
+	<module file="core/osiris2-client-ui.jar"  version="2.05"/>
+	<module file="core/osiris2-framework.jar"  version="2.07"/>
+	<module file="core/osiris2-report.jar"  version="2.05"/>
+	<module file="core/rameses-client-ui.jar"  version="2.05"/>
+	<module file="core/rameses-client-ui-bio.jar"  version="2.4"/>
+	<module file="core/rameses-common2.jar"  version="2.05"/>
+	<module file="core/rameses-custom-impl.jar"  version="2.4"/>
+	<module file="core/rameses-jdbc16.jar"  version="2.4"/>
+	<module file="core/rameses-seti.jar"  version="2.7"/>
+ 
+	<!-- shared libraries -->
+	<module file="shared/client-system.jar"  version="2.05"/>
+	<module file="shared/client-ui-extended.jar"  version="2.05"/>
+	<module file="shared/rameses-client-menu.jar"  version="2.05"/>
+	<module file="shared/rameses-client-report.jar"  version="2.05"/>
+	<module file="shared/rameses-enterprise-accounts.jar"  version="2.4"/>
+	<module file="shared/rameses-enterprise-admin.jar"  version="2.5"/>
+	<module file="shared/rameses-enterprise-entity.jar"  version="2.5"/>
+	<module file="shared/rameses-enterprise-inventory.jar"  version="2.4"/>
+	<module file="shared/rameses-enterprise-treasury.jar"  version="2.5"/>
+	<module file="shared/rameses-enterprise.jar"  version="2.4"/>
+	<module file="shared/rameses-rules-mgmt.jar"  version="2.4"/>
+	<module file="shared/rameses-workflow-mgmt.jar"  version="2.4"/>
+ 
+	<!-- main app libraries -->
+	<module file="rameses-client-notification2.jar"  version="1.4"/>	
+	<module file="rameses-etracs-main.jar" version="2.4"/>
+	<module file="rameses-gov-etracs-bpls.jar"  version="2.5"/>
+	<module file="rameses-gov-etracs-bpls-reports.jar"  version="2.06"/>
+	<module file="rameses-gov-etracs-entity.jar"  version="2.4"/>
+	<module file="rameses-gov-etracs-ngas.jar"  version="2.4"/>
+	<module file="rameses-gov-etracs-municipality.jar"  version="1.4"/>	
+	<module file="rameses-gov-etracs-rptis.jar"  version="1.9"/>
+	<module file="rameses-gov-etracs-rptis-municipality.jar"  version="1.6"/>	
+	<module file="rameses-gov-etracs-rptis-landtax.jar"  version="2.3"/>
+	<module file="rameses-gov-etracs-rptis-landtax-report.jar"  version="1.9"/>
+	<module file="rameses-gov-etracs-rptis-report.jar"  version="1.9"/>
+	<module file="rameses-gov-etracs-rptis-transmittal.jar"  version="1.5"/>
+	<module file="rameses-gov-etracs-signatory-template.jar"  version="1.1"/>
+	<module file="rameses-gov-etracs-sre.jar"  version="2.4"/>	
+	<module file="rameses-gov-etracs-tools.jar"  version="2.4"/>	
+	<module file="rameses-gov-lgu-treasury.jar"  version="2.4"/>
+	<module file="rameses-gov-treasury.jar"  version="2.4"/>
+	<module file="rameses-gov-treasury-report.jar"  version="1.0"/>	
+	
+	<module file="plugins/rameses-gov-etracs-ctc.jar"  version="1.0"/>	
+</modules>
+</app>
